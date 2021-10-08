@@ -12,7 +12,15 @@ namespace danielDevelops.ldap
     {
         private readonly IServerInfo serverInfo;
         internal LdapConnection Connection { get; private set; }
-        internal string BaseOu { get; }
+        public string BaseOu { get; }
+        public string Domain => $"{BaseOu.ToLower().Replace(',', '.').Replace("dc=", String.Empty)}";
+
+        protected TimeSpan? MaxPasswordAge
+        {
+            get => serverInfo.MaxPasswordAge;
+            set => serverInfo.MaxPasswordAge = value;
+        }
+
         public Context(IServerInfo serverInfo)
         {
             this.serverInfo = serverInfo;
@@ -27,6 +35,12 @@ namespace danielDevelops.ldap
             BaseOu = serverInfo.BaseOU;
             InitModels();
         }
+
+        public LdapSearchResults ExecuteRawQuery(string query, 
+            string[] propertiesToLoad, 
+            SearchScope searchScope, 
+            string overrideBaseOu = null)
+            => new DirectorySearch(this).ExecuteRawQuery(query, propertiesToLoad, searchScope, overrideBaseOu);
 
         private void InitModels()
         {
@@ -46,19 +60,31 @@ namespace danielDevelops.ldap
             }
         }
 
+        public LdapConnection CreateConnection()
+        {
+            var connection = new LdapConnection()
+            {
+                SecureSocketLayer = serverInfo.IsSecuredConnection
+            };
+            connection.Connect(serverInfo.ServerAddress, serverInfo.Port);
+            connection.Constraints = new LdapConstraints
+            {
+                ReferralFollowing = true
+            };
+            return connection;
+        }
+
         internal void InitContext()
         {
             if (Connection != null && Connection.Connected)
             {
                 return;
             }
-            Connection = new()
-            {
-                SecureSocketLayer = serverInfo.IsSecuredConnection
-            };
-            Connection.Connect(serverInfo.ServerAddress, serverInfo.Port);
+            Connection = CreateConnection();
             Connection.Bind(serverInfo.Username, serverInfo.Password);
         }
+
+        
 
         public void Dispose()
         {

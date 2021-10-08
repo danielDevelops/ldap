@@ -7,7 +7,7 @@ using Novell.Directory.Ldap;
 
 namespace danielDevelops.ldap
 {
-    internal class LdapResult<T>
+    internal class LdapResult<T> : ILdapResult<T>
     {
         public string PropertyName { get; }
         private readonly List<T> allValues = new();
@@ -24,25 +24,23 @@ namespace danielDevelops.ldap
             }
         }
 
-        public LdapResult(LdapEntry searchResults, string property) 
+        public LdapResult(LdapEntry searchResults, string property)
         {
             PropertyName = property.ToUpper();
             CreateResult(searchResults);
         }
 
-        public void CreateResult(LdapEntry searchResults)
+        private void CreateResult(LdapEntry searchResults)
         {
             if (searchResults == null)
                 return;
 
-            var attributeSet = searchResults.GetAttributeSet();
-            if (!attributeSet.ContainsKey(PropertyName))
-                return;
+            var attributeSet = searchResults.getAttributeSet();
 
-            if (searchResults.GetAttribute(PropertyName) == null || searchResults.GetAttribute(PropertyName)?.Size() == 0)
+            if (searchResults.getAttribute(PropertyName) == null || searchResults.getAttribute(PropertyName)?.size() == 0)
                 return;
             var conversionType = Nullable.GetUnderlyingType(typeof(T)) ?? typeof(T);
-            var isPropertyInt64 = Int64.TryParse(searchResults.GetAttribute(PropertyName).StringValue, out long int64Value);
+            var isPropertyInt64 = Int64.TryParse(searchResults.getAttribute(PropertyName).StringValue, out long int64Value);
             var isStrangeADDate = isPropertyInt64 && conversionType == typeof(DateTime);
 
             if (isStrangeADDate)
@@ -55,13 +53,13 @@ namespace danielDevelops.ldap
             }
             else if (conversionType == typeof(byte[]))
             {
-                var bytes = searchResults.GetAttribute(PropertyName).ByteValue.Select(t => (byte)t).ToArray();
+                var bytes = searchResults.getAttribute(PropertyName).ByteValue.Select(t => (byte)t).ToArray();
 
                 allValues.Add((T)Convert.ChangeType(bytes, conversionType));
             }
             else
             {
-                foreach (var item in searchResults.GetAttribute(PropertyName).StringValueArray)
+                foreach (var item in searchResults.getAttribute(PropertyName).StringValueArray)
                 {
                     allValues.Add((T)Convert.ChangeType(item, conversionType));
                 }

@@ -11,13 +11,13 @@ using Novell.Directory.Ldap;
 
 namespace danielDevelops.ldap
 {
-    internal static class Extensions
+    public static class Extensions
     {
         static readonly Regex ValidAttributeRegex = new Regex(@"^[a-zA-Z0-9-\._\s',]{2,}$");
         public static bool IsValidLdapAttribute(this string value)
             => ValidAttributeRegex.IsMatch(value);
 
-        public static LdapResult<T> ExtractProperty<T>(this LdapEntry searchResults, string property)
+        public static ILdapResult<T> ExtractProperty<T>(this LdapEntry searchResults, string property)
             => new LdapResult<T>(searchResults, property);
     }
 }

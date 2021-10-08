@@ -15,24 +15,42 @@ namespace danielDevelops.ldap
         {
             this.context = context;
         }
-        public IEnumerable<T> RunQuery<T>(string query,
+
+        public LdapSearchResults ExecuteRawQuery(string query, 
+            string[] propertiesToLoad, 
+            SearchScope scope, 
+            string overrideBaseOu = null)
+        {
+            context.InitContext();
+            return context.Connection.Search(overrideBaseOu ?? context.BaseOu, (int)scope, query, propertiesToLoad, false);
+        }
+
+
+        internal IEnumerable<T> RunQuery<T>(string query,
             string[] propertiesToLoad,
             SearchScope scope,
             int resultLimit,
-            IEnumerable<DirectoryPropertyForT> properties)
+            IEnumerable<DirectoryPropertyForT> properties,
+            string overrideBaseOu = null)
         {
             context.InitContext();
-            var searchOptions = new SearchOptions(context.BaseOu, (int)scope, query, propertiesToLoad);
-            return context.Connection.SearchUsingSimplePaging(t => 
-                ConvertToT<T>(new DirectoryResult(t), 
-                properties), 
-                searchOptions, 
-                resultLimit);
+            var results = context.Connection.Search(overrideBaseOu ?? context.BaseOu, (int)scope, query, propertiesToLoad, false);
+            var recs = new List<T>();
+            while (results.hasMore())
+            {
+                var rec = results.next();
+                recs.Add(ConvertToT<T>(rec,properties));
+            }
+            return recs;
+            
         }
 
-        private T ConvertToT<T>(DirectoryResult entry, IEnumerable<DirectoryPropertyForT> properties)
+        private T ConvertToT<T>(LdapEntry entry, IEnumerable<DirectoryPropertyForT> properties)
         {
+            if (entry == null)
+                return default;
             var rec = Activator.CreateInstance(typeof(T));
+            var directoryResult = new DirectoryResult(entry);
             foreach (var item in properties)
             {
                 MethodInfo genericMethod;
@@ -47,7 +65,7 @@ namespace danielDevelops.ldap
                     var method = typeof(DirectoryResult).GetMethod(nameof(DirectoryResult.GetPropertyValue));
                     genericMethod = method.MakeGenericMethod(item.PropertyInfo.PropertyType);
                 }
-                var val = genericMethod.Invoke(entry, new object[] { item.FieldName });
+                var val = genericMethod.Invoke(directoryResult, new object[] { item.FieldName.ToString() });
                 item.PropertyInfo.SetValue(rec, val);
 
             }

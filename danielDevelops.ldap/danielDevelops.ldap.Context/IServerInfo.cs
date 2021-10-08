@@ -16,5 +16,6 @@ namespace danielDevelops.ldap
         string BaseOU { get; }
         bool IsSecuredConnection { get; }
         bool IsMSAD { get; }
+        TimeSpan? MaxPasswordAge { get; set; }
     }
 }

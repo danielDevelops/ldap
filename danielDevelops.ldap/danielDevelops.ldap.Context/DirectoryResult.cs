@@ -7,7 +7,7 @@ using Novell.Directory.Ldap;
 
 namespace danielDevelops.ldap
 {
-    internal class DirectoryResult
+    public class DirectoryResult
     {
         readonly LdapEntry result;
         public DirectoryResult(LdapEntry searchResult)

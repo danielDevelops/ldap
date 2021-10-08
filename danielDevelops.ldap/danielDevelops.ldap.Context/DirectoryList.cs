@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Novell.Directory.Ldap;
 
 namespace danielDevelops.ldap
 {
@@ -24,10 +25,10 @@ namespace danielDevelops.ldap
             attributesOfT = DirectoryPropertyForT.GetPropertyAttributesForT(typeof(T));
         }
 
-        public IEnumerable<T> ExecuteRawQuery(string query, SearchScope searchScope, int limit)
+        public IEnumerable<T> ExecuteRawQuery(string query, SearchScope searchScope, int limit, string overrideBaseOu = null)
         {
             var propsToLoad = attributesOfT.Select(t => t.FieldName).ToArray();
-            return search.RunQuery<T>(query, propsToLoad, searchScope, limit, attributesOfT);
+            return search.RunQuery<T>(query, propsToLoad, searchScope, limit, attributesOfT, overrideBaseOu);
         }
             
         public IEnumerable<T> Get(Expression<Func<T, bool>> query, SearchScope searchScope, int limit)
@@ -35,6 +36,5 @@ namespace danielDevelops.ldap
 
         public T FirstOrDefault(Expression<Func<T, bool>> query, SearchScope searchScope)
             => Get(query, searchScope, 1).FirstOrDefault();
-
     }
 }
